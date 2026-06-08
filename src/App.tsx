@@ -15,7 +15,10 @@ import {
   KeyRound,
   Mail,
   UserPlus,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  EyeOff,
+  ShieldAlert
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import BookCatalog from './components/BookCatalog';
@@ -51,6 +54,8 @@ export default function App() {
   const [authUsername, setAuthUsername] = useState('');
   const [authRole, setAuthRole] = useState<'student' | 'admin'>('student');
   const [authError, setAuthError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
 
   // Setup security headers automatically
   const getHeaders = () => {
@@ -154,6 +159,8 @@ export default function App() {
     setAuthEmail(email);
     setAuthPassword(pass);
     setIsRegistering(false);
+    setAuthSubmitting(true);
+    setShowPassword(false);
 
     fetch('/api/auth/login', {
       method: 'POST',
@@ -179,10 +186,12 @@ export default function App() {
         setUser(data.user);
         setAuthEmail('');
         setAuthPassword('');
+        setAuthSubmitting(false);
       })
       .catch(err => {
         console.error(err);
         setAuthError(err.message);
+        setAuthSubmitting(false);
       });
   };
 
@@ -193,6 +202,7 @@ export default function App() {
       setAuthError('Please fill out all credential spaces.');
       return;
     }
+    setAuthSubmitting(true);
 
     fetch('/api/auth/login', {
       method: 'POST',
@@ -218,10 +228,12 @@ export default function App() {
         setUser(data.user);
         setAuthEmail('');
         setAuthPassword('');
+        setAuthSubmitting(false);
       })
       .catch(err => {
         console.error(err);
         setAuthError(err.message);
+        setAuthSubmitting(false);
       });
   };
 
@@ -232,6 +244,7 @@ export default function App() {
       setAuthError('Please supply all credentials.');
       return;
     }
+    setAuthSubmitting(true);
 
     fetch('/api/auth/register', {
       method: 'POST',
@@ -263,10 +276,12 @@ export default function App() {
         setAuthUsername('');
         setAuthEmail('');
         setAuthPassword('');
+        setAuthSubmitting(false);
       })
       .catch(err => {
         console.error(err);
         setAuthError(err.message);
+        setAuthSubmitting(false);
       });
   };
 
@@ -422,9 +437,47 @@ export default function App() {
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-xl shadow-slate-100 sm:rounded-2xl border border-gray-100 sm:px-10">
             
+            {/* Elegant Auth Tabs */}
+            <div className="flex bg-slate-100 p-1.5 rounded-xl mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(false);
+                  setAuthError('');
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                  !isRegistering
+                    ? 'bg-white text-indigo-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                <span>Security Sign-In</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(true);
+                  setAuthError('');
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                  isRegistering
+                    ? 'bg-white text-indigo-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                <span>Create Account</span>
+              </button>
+            </div>
+
             {authError && (
-              <div className="p-3 mb-4 bg-rose-50 text-rose-700 rounded-xl border border-rose-100 text-xs font-semibold text-left">
-                💀 credential mismatched: {authError}
+              <div className="p-3 mb-4 bg-red-50 text-red-800 rounded-xl border border-red-100 text-xs font-medium text-left flex items-start gap-2.5">
+                <ShieldAlert className="h-4.5 w-4.5 text-red-605 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block text-red-950 mb-0.5">Authorization Error</span>
+                  <span className="leading-relaxed text-red-700">{authError}</span>
+                </div>
               </div>
             )}
 
@@ -436,10 +489,11 @@ export default function App() {
                   <input
                     type="text"
                     required
+                    disabled={authSubmitting}
                     placeholder="john_student"
                     value={authUsername}
                     onChange={(e) => setAuthUsername(e.target.value)}
-                    className="w-full rounded-lg border border-gray-205 py-2 px-3 outline-none focus:border-indigo-500 transition"
+                    className="w-full rounded-lg border border-gray-205 py-2 px-3 outline-none focus:border-indigo-500 transition disabled:opacity-60"
                   />
                 </div>
               )}
@@ -449,23 +503,35 @@ export default function App() {
                 <input
                   type="email"
                   required
+                  disabled={authSubmitting}
                   placeholder="student@library.com"
                   value={authEmail}
                   onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full rounded-lg border border-gray-205 py-2 px-3 outline-none focus:border-indigo-500 transition font-mono"
+                  className="w-full rounded-lg border border-gray-205 py-2 px-3 outline-none focus:border-indigo-500 transition font-mono disabled:opacity-60"
                 />
               </div>
 
               <div>
                 <label className="block text-gray-600 mb-1">Security PIN / Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-205 py-2 px-3 outline-none focus:border-indigo-500 transition"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    disabled={authSubmitting}
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full rounded-lg border border-gray-205 py-2 pl-3 pr-10 outline-none focus:border-indigo-500 transition disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {isRegistering && (
@@ -474,8 +540,9 @@ export default function App() {
                   <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-150 mt-1 select-none">
                     <button
                       type="button"
+                      disabled={authSubmitting}
                       onClick={() => setAuthRole('student')}
-                      className={`flex-1 rounded-md py-1 px-3 text-center text-xs font-semibold ${
+                      className={`flex-1 rounded-md py-1 px-3 text-center text-xs font-semibold transition disabled:opacity-60 ${
                         authRole === 'student' ? 'bg-indigo-600 text-white' : 'text-gray-500'
                       }`}
                     >
@@ -483,8 +550,9 @@ export default function App() {
                     </button>
                     <button
                       type="button"
+                      disabled={authSubmitting}
                       onClick={() => setAuthRole('admin')}
-                      className={`flex-1 rounded-md py-1 px-3 text-center text-xs font-semibold ${
+                      className={`flex-1 rounded-md py-1 px-3 text-center text-xs font-semibold transition disabled:opacity-60 ${
                         authRole === 'admin' ? 'bg-indigo-600 text-white' : 'text-gray-500'
                       }`}
                     >
@@ -496,30 +564,23 @@ export default function App() {
 
               <button
                 type="submit"
-                className="w-full flex justify-center items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 p-2.5 text-xs text-white font-bold shadow-md transition cursor-pointer mt-2"
+                disabled={authSubmitting}
+                className="w-full flex justify-center items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 p-2.5 text-xs text-white font-bold shadow-md transition disabled:opacity-65 cursor-pointer mt-2"
               >
-                {isRegistering ? <UserPlus className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-                <span>{isRegistering ? 'Register & Initialize Wallet' : 'Authorize Secure Access'}</span>
+                {authSubmitting ? (
+                  <>
+                    <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Verifying Authenticator...</span>
+                  </>
+                ) : (
+                  <>
+                    {isRegistering ? <UserPlus className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                    <span>{isRegistering ? 'Register & Initialize Wallet' : 'Authorize Secure Access'}</span>
+                  </>
+                )}
               </button>
 
             </form>
-
-            {/* Pivot log/register */}
-            <div className="mt-6 border-t border-gray-150 pt-4 flex justify-between items-center text-[11px]">
-              <span className="text-gray-400">
-                {isRegistering ? 'Already hold database token?' : 'First time on smart campus?'}
-              </span>
-              <button
-                onClick={() => {
-                  setIsRegistering(!isRegistering);
-                  setAuthError('');
-                }}
-                className="text-indigo-600 hover:text-indigo-800 font-bold transition flex items-center gap-0.5 cursor-pointer"
-              >
-                <span>{isRegistering ? 'Login Gate' : 'Register Gate'}</span>
-                <ArrowRight className="h-3 w-3" />
-              </button>
-            </div>
 
             {/* Preconfigured Test Accounts Credentials Help block */}
             <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-left text-xs text-slate-500">
