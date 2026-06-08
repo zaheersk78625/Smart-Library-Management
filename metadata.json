@@ -1,0 +1,6 @@
+{
+  "name": "Smart Library Management",
+  "description": "Full-stack AI-powered Smart Library Management System with real-time book tracking, JWT auth, QR code actions, ML recommendations, voice search, chatbot, and analytics.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
