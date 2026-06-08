@@ -277,63 +277,79 @@ declare global {
 // AUTH ENDPOINTS
 // ==========================================
 app.post('/api/auth/register', (req: Request, res: Response) => {
-  const { username, email, password, role } = req.body;
+  try {
+    const { username, email, password, role } = req.body;
 
-  if (!username || !email || !password) {
-    res.status(400).json({ error: 'All fields are required.' });
-    return;
+    if (!username || !email || !password) {
+      res.status(400).json({ error: 'All fields are required.' });
+      return;
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const existingUser = users.find(u => u.email.trim().toLowerCase() === normalizedEmail);
+    if (existingUser) {
+      const token = jwt.sign({ id: existingUser.id, role: existingUser.role }, JWT_SECRET, { expiresIn: '7d' });
+      res.json({ token, user: existingUser });
+      return;
+    }
+
+    const userRole = role === 'admin' ? 'admin' : 'student';
+    const id = 'user_' + (users.length + 1);
+    const newUser: User = {
+      id,
+      username,
+      email: normalizedEmail,
+      role: userRole,
+      createdAt: new Date().toISOString(),
+    };
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    users.push(newUser);
+    passwordDB[id] = hashedPassword;
+
+    const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: newUser });
+  } catch (err: any) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Failed to complete registration process.' });
   }
-
-  const normalizedEmail = String(email).trim().toLowerCase();
-
-  const existingUser = users.find(u => u.email.trim().toLowerCase() === normalizedEmail);
-  if (existingUser) {
-    const token = jwt.sign({ id: existingUser.id, role: existingUser.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: existingUser });
-    return;
-  }
-
-  const userRole = role === 'admin' ? 'admin' : 'student';
-  const id = 'user_' + (users.length + 1);
-  const newUser: User = {
-    id,
-    username,
-    email: normalizedEmail,
-    role: userRole,
-    createdAt: new Date().toISOString(),
-  };
-
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  users.push(newUser);
-  passwordDB[id] = hashedPassword;
-
-  const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: newUser });
 });
 
 app.post('/api/auth/login', (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email and password are required.' });
-    return;
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required.' });
+      return;
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = users.find(u => u.email.trim().toLowerCase() === normalizedEmail);
+    if (!user) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    const hash = passwordDB[user.id];
+    if (!hash) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    const passwordValid = bcrypt.compareSync(password, hash);
+    if (!passwordValid) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user });
+  } catch (err: any) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Unexpected authentication error.' });
   }
-
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const user = users.find(u => u.email.trim().toLowerCase() === normalizedEmail);
-  if (!user) {
-    res.status(401).json({ error: 'Invalid email or password.' });
-    return;
-  }
-
-  const passwordValid = bcrypt.compareSync(password, passwordDB[user.id]);
-  if (!passwordValid) {
-    res.status(401).json({ error: 'Invalid email or password.' });
-    return;
-  }
-
-  const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user });
 });
 
 app.get('/api/auth/me', authenticateToken, (req: Request, res: Response) => {
