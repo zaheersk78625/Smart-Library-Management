@@ -149,6 +149,43 @@ export default function App() {
   }, [user]);
 
   // Auth Handlers
+  const handleQuickLogin = (email: string, pass: string) => {
+    setAuthError('');
+    setAuthEmail(email);
+    setAuthPassword(pass);
+    setIsRegistering(false);
+
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    })
+      .then(async res => {
+        if (!res.ok) {
+          let errorMsg = 'Login verification failed';
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch (e) {
+            errorMsg = `Server error (${res.status})`;
+          }
+          throw new Error(errorMsg);
+        }
+        return res.json();
+      })
+      .then(data => {
+        localStorage.setItem('library_jwt_token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+        setAuthEmail('');
+        setAuthPassword('');
+      })
+      .catch(err => {
+        console.error(err);
+        setAuthError(err.message);
+      });
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -485,11 +522,29 @@ export default function App() {
             </div>
 
             {/* Preconfigured Test Accounts Credentials Help block */}
-            <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-left text-[11px] text-slate-500">
-              <span className="font-bold text-slate-700 block mb-1">🔐 Seed Test Accounts:</span>
-              <div className="space-y-1">
-                <div>• <b className="text-indigo-700">Student</b>: <code className="font-mono bg-indigo-100/30 px-1 rounded text-slate-600">student@library.com</code> / <code className="font-mono bg-indigo-100/30 px-1 rounded text-slate-600">student123</code></div>
-                <div>• <b className="text-amber-700">Admin</b>: <code className="font-mono bg-amber-100/30 px-1 rounded text-slate-600">admin@library.com</code> / <code className="font-mono bg-amber-105/30 px-1 rounded text-slate-600">admin123</code></div>
+            <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 text-left text-xs text-slate-500">
+              <span className="font-bold text-slate-700 block mb-2 select-none">⚡ Instant 1-Click Sign In:</span>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('student@library.com', 'student123')}
+                  className="flex flex-col items-center justify-center p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-100 font-semibold cursor-pointer transition text-center"
+                >
+                  <span className="text-[11px] font-bold">Student Account</span>
+                  <span className="text-[9px] font-mono text-indigo-500">student123</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin('admin@library.com', 'admin123')}
+                  className="flex flex-col items-center justify-center p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-100 font-semibold cursor-pointer transition text-center"
+                >
+                  <span className="text-[11px] font-bold">Admin Registrar</span>
+                  <span className="text-[9px] font-mono text-amber-600">admin123</span>
+                </button>
+              </div>
+              <div className="space-y-1 block mt-2 text-[10px] text-slate-400 border-t border-slate-100 pt-2">
+                <div>Manual: <code className="font-mono bg-slate-100 px-1 rounded text-slate-600">student@library.com</code> : <code className="font-mono bg-slate-100 px-1 rounded text-slate-600">student123</code></div>
+                <div>Manual: <code className="font-mono bg-slate-100 px-1 rounded text-slate-600">admin@library.com</code> : <code className="font-mono bg-slate-100 px-1 rounded text-slate-600">admin123</code></div>
               </div>
             </div>
 
