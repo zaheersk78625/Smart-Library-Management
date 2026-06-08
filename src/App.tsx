@@ -163,9 +163,17 @@ export default function App() {
       body: JSON.stringify({ email: authEmail, password: authPassword }),
     })
       .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login verification failed');
-        return data;
+        if (!res.ok) {
+          let errorMsg = 'Login verification failed';
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch (e) {
+            errorMsg = `Server error (${res.status})`;
+          }
+          throw new Error(errorMsg);
+        }
+        return res.json();
       })
       .then(data => {
         localStorage.setItem('library_jwt_token', data.token);
@@ -199,9 +207,17 @@ export default function App() {
       }),
     })
       .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Registration failed');
-        return data;
+        if (!res.ok) {
+          let errorMsg = 'Registration failed';
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch (e) {
+            errorMsg = `Server error (${res.status})`;
+          }
+          throw new Error(errorMsg);
+        }
+        return res.json();
       })
       .then(data => {
         localStorage.setItem('library_jwt_token', data.token);
@@ -245,9 +261,17 @@ export default function App() {
       body: JSON.stringify({ bookId }),
     })
       .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to borrow');
-        return data;
+        if (!res.ok) {
+          let errorMsg = 'Failed to borrow';
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch (e) {
+            errorMsg = `Server error (${res.status})`;
+          }
+          throw new Error(errorMsg);
+        }
+        return res.json();
       })
       .then(() => {
         synchronizeDatabase();
@@ -311,8 +335,17 @@ export default function App() {
       headers: getHeaders(),
       body: JSON.stringify(bookData),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Book catalog insertion failed');
+    if (!res.ok) {
+      let errorMsg = 'Book catalog insertion failed';
+      try {
+        const data = await res.json();
+        errorMsg = data.error || errorMsg;
+      } catch (e) {
+        errorMsg = `Server error (${res.status})`;
+      }
+      throw new Error(errorMsg);
+    }
+    await res.json();
     fetchBooks();
   };
 
